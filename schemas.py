@@ -1,48 +1,40 @@
 """
-Database Schemas
-
-Define your MongoDB collection schemas here using Pydantic models.
-These schemas are used for data validation in your application.
+Database Schemas for Health Payments Platform
 
 Each Pydantic model represents a collection in your database.
 Model name is converted to lowercase for the collection name:
-- User -> "user" collection
-- Product -> "product" collection
-- BlogPost -> "blogs" collection
+- Transaction -> "transaction"
+- Payout -> "payout"
 """
 
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, Literal
+from datetime import datetime
 
-# Example schemas (replace with your own):
+Currency = Literal["EUR", "USD", "GBP", "CHF", "CAD", "AUD"]
+Status = Literal["pending", "completed", "failed"]
+TxnType = Literal["payin", "payout"]
 
-class User(BaseModel):
+class Transaction(BaseModel):
     """
-    Users collection schema
-    Collection name: "user" (lowercase of class name)
+    Payments flowing into (payin) or out of (payout) the platform.
+    Collection: "transaction"
     """
-    name: str = Field(..., description="Full name")
-    email: str = Field(..., description="Email address")
-    address: str = Field(..., description="Address")
-    age: Optional[int] = Field(None, ge=0, le=120, description="Age in years")
-    is_active: bool = Field(True, description="Whether user is active")
+    amount: float = Field(..., ge=0, description="Amount of the transaction")
+    currency: Currency = Field("EUR", description="Currency code")
+    status: Status = Field("completed", description="Payment status")
+    type: TxnType = Field("payin", description="Transaction type: payin or payout")
+    partner: Optional[str] = Field(None, description="Pharmacy, clinic or partner name")
+    reference: Optional[str] = Field(None, description="Reference or invoice number")
+    occurred_at: Optional[datetime] = Field(None, description="When the transaction occurred")
 
-class Product(BaseModel):
+class Payout(BaseModel):
     """
-    Products collection schema
-    Collection name: "product" (lowercase of class name)
+    Outgoing settlements to partners (clinics, pharmacies)
+    Collection: "payout"
     """
-    title: str = Field(..., description="Product title")
-    description: Optional[str] = Field(None, description="Product description")
-    price: float = Field(..., ge=0, description="Price in dollars")
-    category: str = Field(..., description="Product category")
-    in_stock: bool = Field(True, description="Whether product is in stock")
-
-# Add your own schemas here:
-# --------------------------------------------------
-
-# Note: The Flames database viewer will automatically:
-# 1. Read these schemas from GET /schema endpoint
-# 2. Use them for document validation when creating/editing
-# 3. Handle all database operations (CRUD) directly
-# 4. You don't need to create any database endpoints!
+    amount: float = Field(..., ge=0)
+    currency: Currency = Field("EUR")
+    status: Status = Field("pending")
+    beneficiary: str = Field(..., description="Beneficiary name")
+    scheduled_for: Optional[datetime] = None
